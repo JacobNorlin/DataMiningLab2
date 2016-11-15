@@ -8,9 +8,9 @@ transactions = [[n for n in t.strip().split(" ")] for t in data_reader.read_file
 print("Loaded data")
 
 counts_map = a_priori.apriori(transactions, 1000)
-print(counts_map)
 rules = a_priori.generate_association_rules(counts_map, 0.75)
 
+print("==Inferred rules==")
 for rule in rules:
     a, b, confidence = rule
     print(str(a) + " -> " + str(b) + " : c: "+str(confidence))

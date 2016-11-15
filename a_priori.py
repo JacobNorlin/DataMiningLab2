@@ -15,29 +15,28 @@ def count_items_in_transactions(transactions, prev_frequent_items, k, s):
                 frequent_items |= set(candidate)
     return counts, frequent_items
 
-def count_individual_items(items, t):
-    return {item:items.count(item) for item in items if items.count(item) >= t}
 
 def apriori(transactions, t):
-    #counts = count_individual_items(items, t)
     counts, fi = count_items_in_transactions(transactions, [], 1, t)
     print("First pass count done")
     stack = [fi]
     frequent_items = []
     counts_map = {1:counts}
     i = 2
-    while(len(stack) > 0):
+    while len(stack) > 0:
         print("starting L", i)
 
         prev_all_items = stack.pop()
 
         n_counts, n_frequent_items = count_items_in_transactions(transactions, prev_all_items, i, t)
-        if(len(n_frequent_items) > 0):
+
+        if len(n_frequent_items) > 0:
             stack.append(n_frequent_items)
             frequent_items.append(n_frequent_items)
             counts_map[i] = n_counts
         i += 1
     return counts_map
+
 
 def generate_association_rules(count_map, t):
     rules = []
@@ -49,6 +48,7 @@ def generate_association_rules(count_map, t):
             rules += [(a, b, c) for a, b, c in all_rules if c >= t]
 
     return rules
+
 
 #powerset without the empty set and the set itself
 def powerset(iterable):

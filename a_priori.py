@@ -2,54 +2,52 @@ import itertools
 from collections import defaultdict
 
 
-def ck(l, k):
-    return list(itertools.combinations(l,k))
-
-def count_items_in_transactions(transactions, candidates, k):
-    frequent_items = []
+def count_items_in_transactions(transactions, prev_frequent_items, k, s):
     counts = defaultdict(int)
-    items = set()
-    for candidate in candidates:
-        count = sum([1 for t in transactions if set(candidate) <= set(t)])
-        if count >= k:
-            counts[tuple(sorted(candidate))] = count
-            frequent_items.append(candidate)
-            items |= set(candidate)
-    return frequent_items, counts, items
+    frequent_items = set()
+    for t in transactions:
+        fi = t if len(prev_frequent_items) == 0 else [item for item in t if item in prev_frequent_items]
+        candidates = set(itertools.combinations(fi, k))
+        for candidate in candidates:
+            candidate = tuple(sorted(candidate))
+            counts[candidate] += 1
+            if counts[candidate] >= s:
+                frequent_items |= set(candidate)
+    return counts, frequent_items
 
+def count_individual_items(items, t):
+    return {item:items.count(item) for item in items if items.count(item) >= t}
 
-
-def apriori(items, transactions, t):
-    c1 = [(item,) for item in items]
-    _,l1_counts,L1 = count_items_in_transactions(transactions, c1, t)
-    stack = [L1]
+def apriori(transactions, t):
+    #counts = count_individual_items(items, t)
+    counts, fi = count_items_in_transactions(transactions, [], 1, t)
+    print("First pass count done")
+    stack = [fi]
     frequent_items = []
-    counts_map = {1:l1_counts}
+    counts_map = {1:counts}
     i = 2
     while(len(stack) > 0):
         print("starting L", i)
 
-        prev_all_items = stack.pop() #Lk-1
-        C = ck(prev_all_items, i)
-        print(len(C), "combinations")
+        prev_all_items = stack.pop()
 
-        frequent_sets, counts, all_items = count_items_in_transactions(transactions, C, t)
-        print("L_"+str(i)+" done, " + str(len(all_items)) + " items found")
-
-        if(len(frequent_sets) > 0):
-            stack.append(all_items)
-            frequent_items.append(frequent_sets)
-            counts_map[i] = counts
+        n_counts, n_frequent_items = count_items_in_transactions(transactions, prev_all_items, i, t)
+        if(len(n_frequent_items) > 0):
+            stack.append(n_frequent_items)
+            frequent_items.append(n_frequent_items)
+            counts_map[i] = n_counts
         i += 1
-    return frequent_items, counts_map
+    return counts_map
 
-def generate_association_rules(counts, frequent_items, t):
+def generate_association_rules(count_map, t):
     rules = []
-    for i, k_set in enumerate(frequent_items):
-        i += 2
-        for item in k_set:
-            subsets = powerset(item)
-            rules += [(subset, set(item) - set(subset), counts[len(item)][tuple(sorted(item))] / counts[len(set(subset))][tuple(sorted(subset))]) for subset in subsets if counts[len(item)][tuple(sorted(item))] / counts[len(set(subset))][tuple(sorted(subset))] >= t]
+    for k, k_sets in count_map.items():
+        if k == 1: continue
+        for item in k_sets:
+            subsets = [(value, len(value)) for value in powerset(item)]
+            all_rules = [(subset, set(item) - set({subset} if i == 1 else set(subset)), count_map[k][item] / count_map[i][subset]) for subset, i in subsets]
+            rules += [(a, b, c) for a, b, c in all_rules if c >= t]
+
     return rules
 
 #powerset without the empty set and the set itself
